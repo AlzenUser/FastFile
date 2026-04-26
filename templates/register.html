@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Inscription — FastFile{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="auth-card glass">
+        <div class="auth-logo">
+            <div class="logo-icon">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="12" fill="url(#logo-grad2)"/>
+                    <path d="M12 28L20 12L28 28H12Z" fill="white" opacity="0.9"/>
+                    <defs>
+                        <linearGradient id="logo-grad2" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#6c5ce7"/>
+                            <stop offset="1" stop-color="#a29bfe"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <h1>FastFile</h1>
+            <p class="auth-subtitle">Créez votre compte</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        {% if not registration_disabled %}
+        <form method="POST" class="auth-form" id="register-form">
+            <div class="form-group">
+                <label for="username">Nom d'utilisateur</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <input type="text" id="username" name="username" required minlength="3" autocomplete="username" placeholder="min. 3 caractères">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                    <input type="email" id="email" name="email" required autocomplete="email" placeholder="votre@email.com">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Mot de passe</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    <input type="password" id="password" name="password" required minlength="6" autocomplete="new-password" placeholder="min. 6 caractères">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm_password">Confirmer le mot de passe</label>
+                <div class="input-wrapper">
+                    <svg class="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <input type="password" id="confirm_password" name="confirm_password" required minlength="6" autocomplete="new-password" placeholder="confirmez votre mot de passe">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-full" id="register-btn">
+                <span>Créer mon compte</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </button>
+        </form>
+        {% endif %}
+
+        <div class="auth-footer">
+            <p>Déjà un compte ? <a href="{{ url_for('login') }}">Se connecter</a></p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}{{ file['original_name'] }} — FastFile{% endblock %}
+
+{% block content %}
+<div class="share-page">
+    <div class="share-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    <div class="share-card glass">
+        <div class="share-header">
+            <div class="logo-small">
+                <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="12" fill="url(#lg4)"/>
+                    <path d="M12 28L20 12L28 28H12Z" fill="white" opacity="0.9"/>
+                    <defs><linearGradient id="lg4" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#6c5ce7"/><stop offset="1" stop-color="#a29bfe"/></linearGradient></defs>
+                </svg>
+            </div>
+            <span class="brand-name-sm">FastFile</span>
+        </div>
+
+        <div class="share-preview">
+            {% if file['mime_type'] and file['mime_type'].startswith('image/') %}
+            <img src="{{ url_for('cdn_file_raw', filename=file['filename']) }}" alt="{{ file['original_name'] }}" class="preview-img">
+            {% elif file['mime_type'] and file['mime_type'].startswith('video/') %}
+            <video controls class="preview-video"><source src="{{ url_for('cdn_file_raw', filename=file['filename']) }}" type="{{ file['mime_type'] }}"></video>
+            {% elif file['mime_type'] and file['mime_type'].startswith('audio/') %}
+            <div class="preview-audio-wrap"><span class="preview-icon">🎵</span><audio controls class="preview-audio"><source src="{{ url_for('cdn_file_raw', filename=file['filename']) }}" type="{{ file['mime_type'] }}"></audio></div>
+            {% else %}
+            <div class="preview-generic"><span class="preview-icon">{{ file['mime_type']|file_icon }}</span></div>
+            {% endif %}
+        </div>
+
+        <div class="share-info">
+            <h1 class="share-filename">{{ file['original_name'] }}</h1>
+            <div class="share-meta">
+                <span>{{ file['file_size']|human_size }}</span>
+                <span class="file-sep">•</span>
+                <span>{{ file['download_count'] }} téléchargements</span>
+                <span class="file-sep">•</span>
+                <span>par {{ owner['username'] }}</span>
+            </div>
+        </div>
+
+        <a href="{{ url_for('cdn_file', filename=file['filename']) }}" class="btn btn-primary btn-full btn-download" id="download-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>Télécharger</span>
+        </a>
+
+        <div class="share-cdn-link">
+            <label>Lien CDN direct</label>
+            <div class="cdn-copy-row">
+                <code id="cdn-url">{{ url_for('cdn_file', filename=file['filename'], _external=True) }}</code>
+                <button class="btn btn-ghost btn-sm" id="copy-cdn-btn" onclick="navigator.clipboard.writeText(document.getElementById('cdn-url').textContent)">Copier</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

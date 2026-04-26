@@ -1,0 +1,12 @@
+services:
+  fastfile:
+    image: alzenuser/fastfile:latest
+    container_name: fastfile
+    restart: unless-stopped
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    env_file:
+      - .env

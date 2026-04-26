@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — FastFile{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <header class="dash-header glass">
+        <div class="header-left">
+            <div class="logo-small">
+                <svg width="32" height="32" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="12" fill="url(#lg3)" />
+                    <path d="M12 28L20 12L28 28H12Z" fill="white" opacity="0.9" />
+                    <defs>
+                        <linearGradient id="lg3" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#6c5ce7" />
+                            <stop offset="1" stop-color="#a29bfe" />
+                        </linearGradient>
+                    </defs>
+                </svg>
+            </div>
+            <span class="brand-name">FastFile</span>
+        </div>
+        <div class="header-right">
+            <div class="storage-badge glass-subtle">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                </svg>
+                <span>{{ storage_used|human_size }} / {{ max_quota|human_size }}</span>
+            </div>
+            <div class="user-badge glass-subtle">
+                <div class="avatar">{{ user['username'][0]|upper }}</div>
+                <span class="username">{{ user['username'] }}</span>
+            </div>
+            <a href="{{ url_for('logout') }}" class="btn btn-ghost btn-sm" title="Déconnexion">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+            </a>
+        </div>
+    </header>
+
+    <main class="dash-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- Upload Zone -->
+        <div class="upload-zone glass" id="upload-zone">
+            <div class="upload-content">
+                <div class="upload-icon-wrapper">
+                    <svg class="upload-icon" width="48" height="48" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                        <polyline points="17 8 12 3 7 8" />
+                        <line x1="12" y1="3" x2="12" y2="15" />
+                    </svg>
+                </div>
+                <h2>Déposez vos fichiers ici</h2>
+                <p>ou <label for="file-input" class="upload-browse">parcourez</label> votre appareil</p>
+                <p class="upload-hint">Limite globale : {{ max_quota|human_size }} par utilisateur</p>
+                <input type="file" id="file-input" multiple hidden>
+            </div>
+            <div class="upload-progress" id="upload-progress" hidden>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progress-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Upload en cours...</p>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs & Toolbar -->
+        <div class="breadcrumbs-bar">
+            <div class="breadcrumbs">
+                <a href="{{ url_for('dashboard') }}"
+                    class="crumb drop-target {% if not current_folder_id %}crumb-active{% endif %}" data-id="null">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                        <polyline points="9 22 9 12 15 12 15 22" />
+                    </svg>
+                    <span>Racine</span>
+                </a>
+                {% for crumb in breadcrumbs %}
+                <svg class="crumb-sep" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <polyline points="9 18 15 12 9 6" />
+                </svg>
+                <a href="{{ url_for('dashboard', folder_id=crumb.id) }}"
+                    class="crumb drop-target {% if loop.last %}crumb-active{% endif %}" data-id="{{ crumb.id }}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>{{ crumb.name }}</span>
+                </a>
+                {% endfor %}
+            </div>
+            <button class="btn btn-ghost btn-sm" id="new-folder-btn" title="Nouveau dossier">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    <line x1="12" y1="11" x2="12" y2="17" />
+                    <line x1="9" y1="14" x2="15" y2="14" />
+                </svg>
+                <span>Nouveau dossier</span>
+            </button>
+        </div>
+
+        <!-- Search & Count -->
+        <div class="toolbar">
+            <div class="search-wrapper glass-subtle">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+                <input type="text" id="search-input" placeholder="Rechercher..." autocomplete="off">
+            </div>
+            <div class="file-count glass-subtle">
+                <span>{{ folders|length }}</span> dossier{% if folders|length != 1 %}s{% endif %},
+                <span>{{ files|length }}</span> fichier{% if files|length != 1 %}s{% endif %}
+            </div>
+        </div>
+
+        <!-- Folders Grid -->
+        {% if folders %}
+        <div class="folders-grid" id="folders-grid">
+            {% for folder in folders %}
+            <div class="folder-card glass drop-target" data-type="folder" data-id="{{ folder['id'] }}"
+                data-name="{{ folder['name']|lower }}" draggable="true">
+                <input type="checkbox" class="item-checkbox" data-id="{{ folder['id'] }}" data-type="folder">
+                <a href="{{ url_for('dashboard', folder_id=folder['id']) }}" class="folder-link">
+                    <svg class="folder-icon" width="32" height="32" viewBox="0 0 24 24" fill="none"
+                        stroke="currentColor" stroke-width="1.5">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span class="folder-name">{{ folder['name'] }}</span>
+                </a>
+                <div class="folder-actions">
+                    <button class="btn-icon btn-toggle-folder {% if folder['is_public'] %}active{% endif %}" 
+                            title="{{ 'Rendre privé' if folder['is_public'] else 'Rendre public' }}" 
+                            data-id="{{ folder['id'] }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                        </svg>
+                    </button>
+                    {% if folder['is_public'] %}
+                    <button class="btn-icon btn-copy-folder-link" title="Copier le lien public"
+                        data-url="{{ url_for('share_folder_page', token=folder['share_token'], _external=True) }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                    </button>
+                    {% endif %}
+                    <button class="btn-icon btn-rename-folder" title="Renommer" data-id="{{ folder['id'] }}"
+                        data-name="{{ folder['name'] }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                        </svg>
+                    </button>
+                    <button class="btn-icon btn-delete-folder" title="Supprimer" data-id="{{ folder['id'] }}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="3 6 5 6 21 6" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Files Grid -->
+        <div class="files-grid" id="files-grid">
+            {% for file in files %}
+            {% set previewable = file['mime_type'] and (file['mime_type'].startswith('image/') or file['mime_type'].startswith('video/') or file['mime_type'].startswith('audio/') or file['mime_type'].startswith('text/') or file['mime_type'] == 'application/pdf') %}
+            <div class="file-card glass {% if previewable %}previewable-card{% endif %}" data-type="file" data-id="{{ file['id'] }}"
+                data-name="{{ file['original_name']|lower }}" draggable="true"
+                {% if previewable %}
+                data-previewable="true" data-url="{{ url_for('cdn_file_raw', filename=file['filename']) }}" data-mime="{{ file['mime_type'] }}" data-name="{{ file['original_name'] }}" style="cursor: pointer;"
+                {% endif %}>
+                <input type="checkbox" class="item-checkbox" data-id="{{ file['id'] }}" data-type="file">
+                <div class="file-card-header">
+                    {% if file['mime_type'] and file['mime_type'].startswith('image/') %}
+                    <div class="file-thumbnail" style="width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--glass-bg);">
+                        <img src="{{ url_for('cdn_file_raw', filename=file['filename']) }}" alt="{{ file['original_name'] }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    {% else %}
+                    <span class="file-icon">
+                        {{ file['mime_type']|file_icon }}
+                    </span>
+                    {% endif %}
+                    <div class="file-actions">
+                        {% if file['is_public'] %}
+                        <button class="btn-icon btn-copy-link" title="Copier le lien public"
+                            data-cdn-url="{{ url_for('share_page', token=file['share_token'], _external=False) }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                        </button>
+                        {% endif %}
+                        <button class="btn-icon btn-clipboard-copy" title="Copier" data-id="{{ file['id'] }}"
+                            data-name="{{ file['original_name'] }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                            </svg>
+                        </button>
+                        <button class="btn-icon btn-clipboard-cut" title="Couper" data-id="{{ file['id'] }}"
+                            data-name="{{ file['original_name'] }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="6" cy="6" r="3" />
+                                <circle cx="6" cy="18" r="3" />
+                                <line x1="20" y1="4" x2="8.12" y2="15.88" />
+                                <line x1="14.47" y1="14.48" x2="20" y2="20" />
+                                <line x1="8.12" y1="8.12" x2="12" y2="12" />
+                            </svg>
+                        </button>
+                        <button class="btn-icon btn-toggle {% if file['is_public'] %}active{% endif %}"
+                            title="{% if file['is_public'] %}Rendre privé{% else %}Rendre public{% endif %}"
+                            data-id="{{ file['id'] }}">
+                            {% if file['is_public'] %}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10" />
+                                <line x1="2" y1="12" x2="22" y2="12" />
+                                <path
+                                    d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                            </svg>
+                            {% else %}
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            {% endif %}
+                        </button>
+                        <button class="btn-icon btn-rename" title="Renommer" data-id="{{ file['id'] }}"
+                            data-name="{{ file['original_name'] }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                            </svg>
+                        </button>
+                        <button class="btn-icon btn-delete" title="Supprimer" data-id="{{ file['id'] }}">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polyline points="3 6 5 6 21 6" />
+                                <path
+                                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="file-card-body">
+                    <p class="file-name" title="{{ file['original_name'] }}">{{ file['original_name'] }}</p>
+                    <div class="file-meta">
+                        <span>{{ file['file_size']|human_size }}</span>
+                        <span class="file-sep">•</span>
+                        <span>{{ file['upload_date'][:10] }}</span>
+
+                    </div>
+                    {% if file['is_public'] %}
+                    <span class="badge badge-public">Public</span>
+                    {% else %}
+                    <span class="badge badge-private">Privé</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if not files and not folders %}
+        <div class="empty-state">
+            <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"
+                opacity="0.3">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <p>Dossier vide</p>
+            <p class="empty-hint">Glissez-déposez des fichiers ou créez un dossier</p>
+        </div>
+        {% endif %}
+    </main>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Paste Bar (floating, shown when clipboard has content) -->
+    <div class="paste-bar glass" id="paste-bar" hidden>
+        <div class="paste-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+                <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+            </svg>
+            <span id="paste-label">Fichier en attente</span>
+        </div>
+        <div class="paste-actions">
+            <button class="btn btn-primary btn-sm" id="paste-here-btn">Coller ici</button>
+            <button class="btn btn-ghost btn-sm" id="paste-cancel-btn">Annuler</button>
+        </div>
+    </div>
+
+    <!-- Selection Bar -->
+    <div class="paste-bar glass" id="selection-bar" hidden style="z-index: 1501;">
+        <div class="paste-info">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 11 12 14 22 4" />
+                <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+            </svg>
+            <span id="selection-label">0 élément(s) sélectionné(s)</span>
+        </div>
+        <div class="paste-actions">
+            <button class="btn btn-ghost btn-sm" id="sel-copy-btn">Copier</button>
+            <button class="btn btn-ghost btn-sm" id="sel-cut-btn">Couper</button>
+            <button class="btn btn-danger btn-sm" id="sel-delete-btn">Supprimer</button>
+            <button class="btn btn-ghost btn-sm" id="sel-cancel-btn">Annuler</button>
+        </div>
+    </div>
+
+    <!-- Rename Modal (files) -->
+    <div class="modal-overlay" id="rename-modal" hidden>
+        <div class="modal glass">
+            <h3>Renommer le fichier</h3>
+            <input type="text" id="rename-input" class="modal-input" placeholder="Nouveau nom">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="rename-cancel">Annuler</button>
+                <button class="btn btn-primary" id="rename-confirm">Renommer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal (files) -->
+    <div class="modal-overlay" id="delete-modal" hidden>
+        <div class="modal glass">
+            <h3>Supprimer le fichier ?</h3>
+            <p class="modal-text">Cette action est irréversible.</p>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="delete-cancel">Annuler</button>
+                <button class="btn btn-danger" id="delete-confirm">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div class="modal-overlay" id="folder-modal" hidden>
+        <div class="modal glass">
+            <h3 id="folder-modal-title">Nouveau dossier</h3>
+            <input type="text" id="folder-name-input" class="modal-input" placeholder="Nom du dossier">
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="folder-cancel">Annuler</button>
+                <button class="btn btn-primary" id="folder-confirm">Créer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Folder Modal -->
+    <div class="modal-overlay" id="delete-folder-modal" hidden>
+        <div class="modal glass">
+            <h3>Supprimer ce dossier ?</h3>
+            <p class="modal-text">Tous les fichiers et sous-dossiers qu'il contient seront définitivement supprimés.</p>
+            <div class="modal-actions">
+                <button class="btn btn-ghost" id="delete-folder-cancel">Annuler</button>
+                <button class="btn btn-danger" id="delete-folder-confirm">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Config Modal -->
+    <div class="modal-overlay" id="share-modal" hidden>
+        <div class="modal glass">
+            <h3>Configurer le partage</h3>
+            <p class="modal-text" style="margin-bottom: 16px;">Personnalisez l'accès à votre lien public.</p>
+            
+            <label style="display: block; font-size: 0.75rem; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Slug personnalisé</label>
+            <div style="display: flex; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 0 10px; border: 1px solid rgba(255,255,255,0.08); margin-bottom: 14px;">
+                <span id="share-prefix" style="font-size: 0.8rem; color: var(--accent-light); white-space: nowrap;">/share/</span>
+                <input type="text" id="share-slug" style="flex:1; background:none; border:none; color:var(--text-primary); font-family:inherit; font-size:0.88rem; padding:10px 6px; outline:none;" placeholder="mon-slug">
+            </div>
+
+            <label style="display: block; font-size: 0.75rem; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Mot de passe (optionnel)</label>
+            <input type="password" id="share-password" class="modal-input" style="margin-bottom: 14px;" placeholder="••••••••">
+
+            <label style="display: block; font-size: 0.75rem; margin-bottom: 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Date d'expiration (optionnel)</label>
+            <input type="datetime-local" id="share-expiry" class="modal-input" style="margin-bottom: 18px;">
+
+            <div class="modal-actions">
+                <button id="share-unshare" class="btn btn-danger btn-sm" style="margin-right: auto; display: none;">Désactiver</button>
+                <button id="share-cancel" class="btn btn-ghost">Annuler</button>
+                <button id="share-confirm" class="btn btn-primary">Valider</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- File Preview Modal -->
+    <div class="modal-overlay" id="preview-modal" hidden>
+        <div class="modal glass image-modal" style="max-width: 90vw; max-height: 90vh; padding: 10px; display: flex; flex-direction: column;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h3 id="preview-modal-title" style="margin: 0; color: white; text-overflow: ellipsis; overflow: hidden; white-space: nowrap; max-width: 80%;"></h3>
+                <button class="btn-icon" id="preview-modal-close" style="cursor: pointer; color: white;">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
+            </div>
+            <div id="preview-modal-content" style="flex: 1; overflow: auto; display: flex; justify-content: center; align-items: center; background: rgba(0,0,0,0.2); border-radius: 8px; padding: 10px;">
+                <!-- Dynamically injected -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pass current folder to JS -->
+<script>window.__CURRENT_FOLDER_ID = {{ current_folder_id |default ('null') }};</script>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}

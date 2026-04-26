@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" width="512" height="512">
+  <defs>
+    <linearGradient id="lg-fastfile" x1="0" y1="0" x2="40" y2="40">
+      <stop stop-color="#6c5ce7" />
+      <stop offset="1" stop-color="#a29bfe" />
+    </linearGradient>
+  </defs>
+  <rect width="40" height="40" rx="12" fill="url(#lg-fastfile)" />
+  <path d="M12 28L20 12L28 28H12Z" fill="white" opacity="0.9" />
+</svg>

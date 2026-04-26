@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Admin — FastFile{% endblock %}
+
+{% block content %}
+<div class="dashboard-page">
+    <header class="dash-header glass">
+        <div class="header-left">
+            <span class="brand-name">FastFile Admin</span>
+        </div>
+        <div class="header-right">
+            <form method="POST" action="{{ url_for('admin') }}" style="display:inline;">
+                <input type="hidden" name="action" value="logout">
+                <button type="submit" class="btn btn-ghost btn-sm">Déconnexion</button>
+            </form>
+        </div>
+    </header>
+
+    <main class="dash-main">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+
+        <div class="glass" style="padding: 2rem; border-radius: var(--radius-lg);">
+            <h2>Paramètres Globaux</h2>
+            <form method="POST" action="{{ url_for('admin') }}" style="margin-top: 1.5rem;">
+                <input type="hidden" name="action" value="save_settings">
+                
+                <div class="form-group">
+                    <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+                        <input type="checkbox" name="registration_enabled" value="1" {% if registration_enabled %}checked{% endif %}>
+                        Inscriptions ouvertes
+                    </label>
+                </div>
+                
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label>Quota maximum par utilisateur</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <input type="number" step="0.1" id="quota_val" name="quota_val" class="modal-input" value="{{ quota_val }}" required style="margin-bottom:0; flex:1;">
+                        <select name="quota_unit" class="modal-input" style="margin-bottom:0; width:80px; padding: 12px 10px;">
+                            <option value="MB" {% if quota_unit == 'MB' %}selected{% endif %}>Mo</option>
+                            <option value="GB" {% if quota_unit == 'GB' %}selected{% endif %}>Go</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem;">Enregistrer</button>
+            </form>
+            <div style="margin-top: 1.5rem;">
+                <a href="{{ url_for('index') }}" class="auth-link">Aller au dashboard utilisateur</a>
+            </div>
+        </div>
+    </main>
+</div>
+{% endblock %}

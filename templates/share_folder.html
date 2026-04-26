@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{{ folder['name'] }} — FastFile{% endblock %}
+
+{% block content %}
+<div class="share-page">
+    <div class="share-bg-orbs">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+    </div>
+    
+    <div class="share-folder-container glass">
+        <div class="share-header">
+            <div class="logo-small">
+                <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                    <rect width="40" height="40" rx="12" fill="url(#lg4)"/>
+                    <path d="M12 28L20 12L28 28H12Z" fill="white" opacity="0.9"/>
+                    <defs><linearGradient id="lg4" x1="0" y1="0" x2="40" y2="40"><stop stop-color="#6c5ce7"/><stop offset="1" stop-color="#a29bfe"/></linearGradient></defs>
+                </svg>
+            </div>
+            <span class="brand-name-sm">FastFile</span>
+        </div>
+
+        <div class="folder-header-public">
+            <h1 class="share-filename">📂 {{ folder['name'] }}</h1>
+            <p class="share-meta">Partagé par {{ owner['username'] }} • {{ files|length }} fichier(s), {{ subfolders|length }} dossier(s)</p>
+        </div>
+
+        <div class="public-grid">
+            {% for sub in subfolders %}
+            <a href="{{ url_for('share_folder_page', token=sub['share_token']) if sub['is_public'] else '#' }}" class="folder-card glass {% if not sub['is_public'] %}disabled{% endif %}">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="var(--accent)" style="opacity: 0.8">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span class="folder-name">{{ sub['name'] }}</span>
+                {% if not sub['is_public'] %}<span class="badge badge-private">Privé</span>{% endif %}
+            </a>
+            {% endfor %}
+
+            {% for file in files %}
+            <div class="file-card glass">
+                <div class="file-card-header">
+                    {% if file['mime_type'] and file['mime_type'].startswith('image/') %}
+                    <div class="file-thumbnail" style="width: 40px; height: 40px; border-radius: 8px; overflow: hidden; flex-shrink: 0; background: var(--glass-bg);">
+                        <img src="{{ url_for('cdn_file_raw', filename=file['filename']) }}" alt="{{ file['original_name'] }}" style="width: 100%; height: 100%; object-fit: cover;">
+                    </div>
+                    {% else %}
+                    <span class="file-icon">{{ file['mime_type']|file_icon }}</span>
+                    {% endif %}
+                    <div class="file-actions">
+                        <a href="{{ url_for('cdn_file', filename=file['filename']) }}" class="btn-icon" title="Télécharger">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        </a>
+                    </div>
+                </div>
+                <div class="file-info">
+                    <span class="file-name">{{ file['original_name'] }}</span>
+                    <span class="file-meta">{{ file['file_size']|human_size }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        {% if not files and not subfolders %}
+        <div class="empty-state">
+            <p>Ce dossier est vide.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .share-folder-container { max-width: 1000px; margin: 40px auto; padding: 32px; border-radius: 24px; min-height: 60vh; position: relative; z-index: 10; }
+    .folder-header-public { margin-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 24px; }
+    .public-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+    .folder-card.disabled { opacity: 0.5; cursor: not-allowed; text-decoration: none; }
+    .badge-private { font-size: 10px; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 4px; margin-top: 4px; }
+    .empty-state { text-align: center; padding: 60px; color: rgba(255,255,255,0.5); }
+    .folder-card { padding: 16px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; text-decoration: none; color: inherit; transition: var(--transition); }
+    .folder-card:hover:not(.disabled) { transform: translateY(-4px); background: rgba(255,255,255,0.1); }
+    .folder-name, .file-name { font-weight: 600; font-size: 0.9rem; white-space: normal; word-break: break-all; overflow: visible; text-overflow: clip; display: block; width: 100%; }
+</style>
+{% endblock %}

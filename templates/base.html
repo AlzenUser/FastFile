@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="FastFile — Hébergez, gérez et partagez vos fichiers en toute sécurité.">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}FastFile{% endblock %}</title>
     <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='img/logo.svg') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">

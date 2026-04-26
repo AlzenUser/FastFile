@@ -237,11 +237,7 @@ def rename_file(db_path, file_id, new_name):
     conn.close()
 
 
-def increment_download_count(db_path, file_id):
-    conn = get_db(db_path)
-    conn.execute('UPDATE files SET download_count = download_count + 1 WHERE id = ?', (file_id,))
-    conn.commit()
-    conn.close()
+
 
 
 def get_user_storage_used(db_path, user_id):

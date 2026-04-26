@@ -1,6 +1,7 @@
 import os
 import uuid
 import mimetypes
+import re
 from flask import (
     render_template, request, redirect, url_for,
     session, jsonify, g, send_from_directory, flash, abort
@@ -9,7 +10,7 @@ from werkzeug.utils import secure_filename
 from api import models
 from api.auth import hash_password, verify_password, login_required, require_auth
 
-def register_routes(app):
+def register_routes(app, limiter):
     
     def allowed_file(filename):
         return '.' in filename and \
@@ -49,6 +50,7 @@ def register_routes(app):
         return redirect(url_for('login'))
 
     @app.route('/login', methods=['GET', 'POST'])
+    @limiter.limit("5 per minute")
     def login():
         if 'user_id' in session:
             return redirect(url_for('dashboard'))
@@ -69,6 +71,7 @@ def register_routes(app):
         return render_template('login.html')
 
     @app.route('/register', methods=['GET', 'POST'])
+    @limiter.limit("5 per minute")
     def register():
         if 'user_id' in session:
             return redirect(url_for('dashboard'))
@@ -133,7 +136,7 @@ def register_routes(app):
         
         # Check expiration
         if models.is_share_expired(file['expires_at']):
-            return render_template('base.html', error_code="Lien expiré", error_message="Ce lien de partage n'est plus valide."), 410
+            abort(404)
 
         # Check password
         if file['password_hash']:
@@ -159,7 +162,7 @@ def register_routes(app):
         
         # Check expiration
         if models.is_share_expired(folder['expires_at']):
-            return render_template('base.html', error_code="Lien expiré", error_message="Ce lien de partage n'est plus valide."), 410
+            abort(404)
 
         # Check password
         if folder['password_hash']:
@@ -227,7 +230,7 @@ def register_routes(app):
         return jsonify({'files': [{
             'id': f['id'], 'original_name': f['original_name'], 'filename': f['filename'], 'file_size': f['file_size'],
             'mime_type': f['mime_type'], 'share_token': f['share_token'], 'is_public': bool(f['is_public']),
-            'upload_date': f['upload_date'], 'download_count': f['download_count'], 'human_size': human_size(f['file_size']),
+            'upload_date': f['upload_date'], 'human_size': human_size(f['file_size']),
             'icon': get_file_icon(f['mime_type']),
         } for f in files]})
 
@@ -251,8 +254,14 @@ def register_routes(app):
         is_public = data.get('is_public', not file['is_public'])
         
         slug = data.get('slug', '').strip() if 'slug' in data else file['share_token']
-        if slug and slug != file['share_token'] and not models.is_slug_available(app.config['DATABASE'], slug, 'file', file_id):
-            return jsonify({'error': 'Ce slug est déjà utilisé'}), 400
+        if slug:
+            if not re.match(r'^[a-zA-Z0-9_-]+$', slug):
+                return jsonify({'error': 'Format de slug invalide. Utilisez uniquement lettres, chiffres, tirets et underscores.'}), 400
+            reserved_slugs = {'login', 'register', 'admin', 'logout', 'dashboard', 'api', 'share', 'file', 'raw', 'folder'}
+            if slug in reserved_slugs:
+                return jsonify({'error': 'Ce slug est réservé et ne peut pas être utilisé.'}), 400
+            if slug != file['share_token'] and not models.is_slug_available(app.config['DATABASE'], slug, 'file', file_id):
+                return jsonify({'error': 'Ce slug est déjà utilisé'}), 400
             
         if 'password' in data:
             pw_hash = hash_password(data['password'].strip()) if data['password'].strip() else None
@@ -393,8 +402,14 @@ def register_routes(app):
         is_public = data.get('is_public', not folder['is_public'])
         
         slug = data.get('slug', '').strip() if 'slug' in data else folder['share_token']
-        if slug and slug != folder['share_token'] and not models.is_slug_available(app.config['DATABASE'], slug, 'folder', folder_id):
-            return jsonify({'error': 'Ce slug est déjà utilisé'}), 400
+        if slug:
+            if not re.match(r'^[a-zA-Z0-9_-]+$', slug):
+                return jsonify({'error': 'Format de slug invalide. Utilisez uniquement lettres, chiffres, tirets et underscores.'}), 400
+            reserved_slugs = {'login', 'register', 'admin', 'logout', 'dashboard', 'api', 'share', 'file', 'raw', 'folder'}
+            if slug in reserved_slugs:
+                return jsonify({'error': 'Ce slug est réservé et ne peut pas être utilisé.'}), 400
+            if slug != folder['share_token'] and not models.is_slug_available(app.config['DATABASE'], slug, 'folder', folder_id):
+                return jsonify({'error': 'Ce slug est déjà utilisé'}), 400
             
         if 'password' in data:
             pw_hash = hash_password(data['password'].strip()) if data['password'].strip() else None
@@ -471,6 +486,7 @@ def register_routes(app):
 
     @app.route('/share/file/<filename>')
     def cdn_file(filename):
+        if secure_filename(filename) != filename: abort(400)
         conn = models.get_db(app.config['DATABASE'])
         file = conn.execute('SELECT * FROM files WHERE filename = ?', (filename,)).fetchone()
         conn.close()
@@ -479,15 +495,15 @@ def register_routes(app):
         is_owner = ('user_id' in session and session['user_id'] == file['user_id'])
         if not is_owner:
             if not file['is_public']: abort(404)
-            if models.is_share_expired(file['expires_at']): abort(410)
+            if models.is_share_expired(file['expires_at']): abort(404)
             if file['password_hash'] and not session.get(f"share_unlocked_{file['share_token']}"):
                 return redirect(url_for('share_page', token=file['share_token']))
                 
-        models.increment_download_count(app.config['DATABASE'], file['id'])
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename, download_name=file['original_name'])
 
     @app.route('/share/raw/<filename>')
     def cdn_file_raw(filename):
+        if secure_filename(filename) != filename: abort(400)
         conn = models.get_db(app.config['DATABASE'])
         file = conn.execute('SELECT * FROM files WHERE filename = ?', (filename,)).fetchone()
         conn.close()
@@ -496,7 +512,7 @@ def register_routes(app):
         is_owner = ('user_id' in session and session['user_id'] == file['user_id'])
         if not is_owner:
             if not file['is_public']: abort(404)
-            if models.is_share_expired(file['expires_at']): abort(410)
+            if models.is_share_expired(file['expires_at']): abort(404)
             if file['password_hash'] and not session.get(f"share_unlocked_{file['share_token']}"):
                 abort(403)
                 

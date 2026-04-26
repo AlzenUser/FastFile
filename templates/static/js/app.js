@@ -4,6 +4,16 @@
    ═══════════════════════════════════════════ */
 
 document.addEventListener('DOMContentLoaded', () => {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const originalFetch = window.fetch;
+    window.fetch = async function(resource, config) {
+        if (config && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(config.method?.toUpperCase())) {
+            config.headers = config.headers || {};
+            if (csrfToken) config.headers['X-CSRFToken'] = csrfToken;
+        }
+        return originalFetch(resource, config);
+    };
+
     const uploadZone = document.getElementById('upload-zone');
     const fileInput = document.getElementById('file-input');
     const uploadProgress = document.getElementById('upload-progress');
@@ -104,6 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     };
 
                     xhr.open('POST', '/api/upload');
+                    if (csrfToken) xhr.setRequestHeader('X-CSRFToken', csrfToken);
                     xhr.send(fd);
                 });
             } catch (err) {

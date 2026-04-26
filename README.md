@@ -74,7 +74,6 @@ L'application est maintenant accessible sur **http://localhost:5000** (ou l'IP d
 1. **Créer un compte** : Allez sur `http://votre-serveur:5000/register` et créez votre compte utilisateur.
 2. **Panneau d'Administration** : Rendez-vous sur `http://votre-serveur:5000/admin`.
 3. **Connexion Admin** : Entrez le `ADMIN_TOKEN` que vous avez défini dans votre fichier `.env`.
-4. **Approuver votre compte** : Par défaut, les nouveaux comptes ont un quota de "0 B". Depuis le panel admin, attribuez un quota à votre compte (par exemple `10 GB`) pour pouvoir commencer à envoyer des fichiers.
 
 ---
 

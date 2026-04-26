@@ -2,7 +2,7 @@
 
 **FastFile** est un gestionnaire de fichiers et CDN auto-hébergé, conçu avec une interface moderne en "Glassmorphism". Il vous permet de stocker, organiser et partager vos fichiers facilement depuis votre propre serveur.
 
-![FastFile Dashboard UI](https://via.placeholder.com/1200x600.png?text=FastFile+Dashboard+Preview) <!-- Vous pouvez remplacer ceci par un vrai screenshot -->
+![FastFile Dashboard UI](templates/static/img/preview.png)
 
 ## ✨ Fonctionnalités Principales
 
